@@ -1,0 +1,67 @@
+---
+title: "Untitled"
+output: html_document
+date: '2022-05-01'
+---
+
+```{r}
+library(tidyverse)
+library(readr)
+library(ggplot2)
+library(dplyr)
+library(psych)
+library(plyr)
+library(readr)
+library(funr)
+library(dplyr)
+library(caret)
+library(readxl)
+library(psych)
+library(plyr)
+library(ggplot2)
+library(zoo)
+library(corrplot)
+library(car)
+library(haven)
+#library(openxlsx)
+#library(car)
+```
+
+```{r}
+boston2 <- read_csv("housing.csv")
+```
+
+
+```{r}
+boston2$MEDV[boston2$MEDV>=40.00] <-"D"
+boston2$MEDV[boston2$MEDV<40.00&boston2$MEDV>=25.00] <-"C"
+boston2$MEDV[boston2$MEDV<25.00&boston2$MEDV>=15.00] <-"B"
+boston2$MEDV[boston2$MEDV<15.00] <-"A"
+boston2$MEDV<-factor(boston2$MEDV,levels=c("A","B","C","D"))
+```
+
+```{r}
+boston3<-na.omit(boston2)
+```
+
+```{r}
+boston3
+```
+
+```{r}
+set.seed(12)
+train <- sample(nrow(boston3), 0.7*nrow(boston3))
+boston.train <- boston3[train,]
+boston.validate <- boston3[-train,]
+```
+
+```{r}
+library(partykit)
+library(party)
+fit.ctree <- ctree(MEDV~CRIM+ZN+CHAS+NOX+RM+I(RM^2)+DIS+D+TAX+PIRATIO+log(LSTAT),data=boston.train)
+plot(fit.ctree,main="Conditional Inference Tree") #pch  ,Ity=3,cex=0.1
+
+ctree.pred <- predict(fit.ctree, boston.validate, type="response")
+ctree.perf <- table(boston.validate$MEDV, ctree.pred, dnn=c("Actual", "Predicted"))
+ctree.perf
+```

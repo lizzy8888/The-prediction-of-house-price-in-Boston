@@ -1,0 +1,230 @@
+---
+title: "IBDA Group Project"
+author: "Lizzy 1930018036"
+date: "2022/5/3"
+output: html_document
+---
+
+```{r}
+library(tidyverse)
+library(readr)
+library(ggplot2)
+library(dplyr)
+library(psych)
+library(plyr)
+library(readr)
+library(funr)
+library(dplyr)
+library(caret)
+library(readxl)
+library(psych)
+library(plyr)
+library(ggplot2)
+library(zoo)
+library(corrplot)
+library(car)
+library(haven)
+library(party)
+library(partykit)
+library(stringr)
+library(hdi)
+library(openxlsx)
+```
+
+```{r}
+boston <- read_csv("housing.csv")
+```
+```{r}
+#Check the outliers
+fit<-lm(MEDV ~ CRIM+ZN+INDUS+CHAS+NOX+RM+AGE+DIS+D+TAX+PIRATIO+LSTAT, data=boston)
+summary(fit)
+outlierTest(fit)
+```
+```{r}
+boston<-boston[-c(387,390,391),]
+fit1 <- lm(MEDV~CRIM+ZN+INDUS+CHAS+NOX+RM+AGE+DIS+D+PIRATIO+TAX+LSTAT,data=boston)
+summary(fit1)
+```
+
+```{r}
+#Correlation
+Boston <- read_csv("housing1.csv")
+res<-cor(Boston)
+corrplot(res)
+corrplot(res,method="pie",tl.col="black",tl.srt=45, title = "method=pie的饼图", cex.main = 1, mar = c(2,2,3,2))  #饼图
+corrplot(res, type = "upper", order = "hclust", tl.col = "black", tl.srt = 40, title = "type = upper的数字+饼图", mar = c(2,2,3,2))  #上三角
+corrplot.mixed(res, title = "Mixed Matrix", mar = c(0.1,0.1,0.15,0.1)) #图形和数值混合矩阵
+win.graph(width=4.875,heigh=2.5,pointsize=8)
+corrplot.mixed(res, lower.col = "black", number.cex = .7, title = "文字看不清，可以设置文字为黑色lower.col和大小number.cex", mar = c(2,2,3,2))
+corrplot(res, order = "hclust", addrect = 2, title = "按hclust聚类方式排序", mar = c(2,2,3,2)) 
+```
+
+```{r}
+#Plot scatter plots to observe the correlation between x and y, look them whether have linear relationship. We can see that most of independent variables have a linear relationship with y, but LSTAT not. So we take log transformation to it.
+plot(boston$CRIM,boston$MEDV)
+lines(ksmooth(boston$CRIM,boston$MEDV, bandwidth =1,kernel = "normal"), col="red")
+plot(boston$ZN,boston$MEDV)
+lines(ksmooth(boston$ZN,boston$MEDV, bandwidth =1,kernel = "normal"), col="red")
+plot(boston$INDUS,boston$MEDV)
+lines(ksmooth(boston$INDUS,boston$MEDV, bandwidth =1,kernel = "normal"), col="red")
+plot(boston$CHAS,boston$MEDV)
+lines(ksmooth(boston$CHAS,boston$MEDV, bandwidth =1,kernel = "normal"), col="red")
+plot(boston$NOX,boston$MEDV)
+lines(ksmooth(boston$NOX,boston$MEDV, bandwidth =1,kernel = "normal"), col="red")
+plot(boston$RM,boston$MEDV)
+lines(ksmooth(boston$RM,boston$MEDV, bandwidth =1,kernel = "normal"), col="red")
+plot(boston$AGE,boston$MEDV)
+lines(ksmooth(boston$AGE,boston$MEDV, bandwidth =1,kernel = "normal"), col="red")
+plot(boston$DIS,boston$MEDV)
+lines(ksmooth(boston$DIS,boston$MEDV, bandwidth =1,kernel = "normal"), col="red")
+plot(boston$RAD,boston$MEDV)
+lines(ksmooth(boston$RAD,boston$MEDV, bandwidth =1,kernel = "normal"), col="red")
+plot(boston$TAX,boston$MEDV)
+lines(ksmooth(boston$TAX,boston$MEDV, bandwidth =1,kernel = "normal"), col="red")
+plot(boston$PIRATIO,boston$MEDV)
+lines(ksmooth(boston$PIRATIO,boston$MEDV, bandwidth =1,kernel = "normal"), col="red")
+plot(boston$LSTAT,boston$MEDV)
+lines(ksmooth(boston$LSTAT,boston$MEDV, bandwidth =1,kernel = "normal"), col="red")
+```
+
+```{r}
+#Finally, we regard D as RAD and edit LSTAT to log(LSTAT)
+fit1 <- lm(MEDV ~ CRIM+ZN+INDUS+CHAS+NOX+RM+AGE+D+DIS+PIRATIO+TAX+log(LSTAT),data=boston)
+#summary(fit1)
+tstep<-step(fit1)
+```
+
+```{r}
+fit2 <- lm(MEDV ~ CRIM+ZN+INDUS+CHAS+NOX+RM+AGE+D+DIS+PIRATIO+TAX+I(LSTAT^(-2)),data=boston)
+#summary(fit2)
+tstep<-step(fit2)
+```
+```{r}
+fit3 <- lm(MEDV ~ CRIM+ZN+INDUS+CHAS+NOX+RM+AGE+D+DIS+PIRATIO+TAX+I(exp(LSTAT)),data=boston)
+#summary(fit3)
+tstep<-step(fit3)
+```
+```{r}
+#Interaction term
+# NOX & DIS
+reg <- lm(MEDV ~ 1, data=boston)
+reg01 <- lm(MEDV ~ NOX+DIS, data=boston)
+reg02 <- lm(MEDV ~ NOX+DIS+NOX:DIS, data = boston)
+anova(reg, reg01,reg02)
+```
+```{r}
+# CRIM & LSTAT
+reg <- lm(MEDV ~ 1, data=boston)
+reg01 <- lm(MEDV ~ CRIM+LSTAT, data=boston)
+reg02 <- lm(MEDV ~ CRIM+LSTAT+CRIM:LSTAT, data = boston)
+anova(reg, reg01,reg02)
+```
+```{r}
+# INDUS & DIS
+reg <- lm(MEDV ~ 1, data=boston)
+reg01 <- lm(MEDV ~ INDUS+DIS, data=boston)
+reg02 <- lm(MEDV ~ INDUS+DIS+INDUS:DIS, data = boston)
+anova(reg, reg01,reg02)
+```
+
+```{r}
+# DIS & AGE
+IN_1 <- lm( MEDV ~ DIS + AGE , data = boston )
+IN_2 <- lm( MEDV ~ DIS + AGE + DIS:AGE , data = boston )
+anova( IN_1 , IN_2 )
+```
+```{r}
+# INDUS & NOX
+IN_1 <- lm( MEDV ~ INDUS+NOX , data = boston )
+IN_2 <- lm( MEDV ~ INDUS+NOX+INDUS:NOX , data = boston )
+anova( IN_1 , IN_2 )
+```
+
+```{r}
+# NOX & DIS
+ID_1 <- lm( MEDV ~ NOX+DIS , data = boston )
+ID_2 <- lm( MEDV ~ NOX+DIS+NOX:DIS , data = boston )
+anova(  ID_1 , ID_2 )
+```
+
+```{r}
+# INDUS & AGE
+ID_1 <- lm( MEDV ~ INDUS+AGE , data = boston )
+ID_2 <- lm( MEDV ~ INDUS*AGE , data = boston )
+anova( ID_1 , ID_2 )
+```
+
+```{r}
+# NOX & AGE
+ID_1 <- lm( MEDV ~ NOX+AGE , data = boston )
+ID_2 <- lm( MEDV ~ NOX+AGE+NOX:AGE , data = boston )
+anova( ID_1 , ID_2 )
+```
+
+```{r}
+fit4 <- lm(MEDV ~ CRIM+ZN+INDUS+CHAS+NOX+RM+AGE+D+DIS+PIRATIO+TAX+log(LSTAT),data=boston)
+tstep<-step(fit4)
+summary(tstep)
+```
+
+```{r}
+hist(boston$MEDV)
+```
+
+```{r}
+#model diagnostics
+fit5 <-lm(MEDV~CRIM+ZN+CHAS+NOX+RM+DIS+D+TAX+PIRATIO+log(LSTAT),data=boston)
+summary(fit5)
+par(mfrow=c(2,2))
+plot(fit5)
+```
+
+```{r}
+#According to above plots, we see than we can transform RM to polynomial terms
+fit6<-lm(MEDV~RM,data=boston)
+fit7<-lm(MEDV~RM+I(RM^2),data=boston)
+fit8<-lm(MEDV~RM+I(RM^2)+I(RM^3),data=boston)
+anova(fit6,fit7,fit8)
+```
+
+```{r}
+#Component residual plot
+fit5 <-lm(MEDV~CRIM+ZN+CHAS+NOX+RM+DIS+D+TAX+PIRATIO+log(LSTAT),data=boston)
+summary(fit5)
+crPlots(fit5)
+```
+
+```{r}
+#According to above plots, we see than we can transform RM to polynomial terms
+fit9<-lm(MEDV~RM,data=boston)
+fit10<-lm(MEDV~RM+I(RM^2),data=boston)
+fit11<-lm(MEDV~RM+I(RM^2)+I(RM^3),data=boston)
+anova(fit9,fit10,fit11)
+```
+
+```{r}
+fit12<-lm(MEDV~CRIM+ZN+CHAS+NOX+RM+I(RM^2)+DIS+D+TAX+PIRATIO+log(LSTAT),data=boston)
+summary(fit12)
+#R^2 increases to 0.851
+```
+
+```{r}
+crPlots(fit12)
+#The plot of RM looks better
+```
+
+```{r}
+par(mfrow=c(2,2))
+plot(fit12)
+```
+
+```{r}
+#VIF
+vif(fit12)
+```
+
+```{r}
+predict(fit12)
+```
+
+
